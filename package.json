@@ -1,0 +1,45 @@
+{
+  "name": "ark-print-server",
+  "version": "1.0.0",
+  "description": "Local print server for ARK Stock ZPL printers - Standalone solution for clients",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "build:win": "pkg . --targets node18-win-x64 --output dist/ark-print-server-win.exe",
+    "build:mac": "pkg . --targets node18-macos-x64 --output dist/ark-print-server-mac",
+    "build:linux": "pkg . --targets node18-linux-x64 --output dist/ark-print-server-linux",
+    "build:all": "npm run build:win && npm run build:mac && npm run build:linux"
+  },
+  "bin": "src/server.js",
+  "pkg": {
+    "assets": [
+      "src/web-ui/**/*"
+    ],
+    "outputPath": "dist"
+  },
+  "keywords": [
+    "zpl",
+    "printer",
+    "print-server",
+    "ark-stock",
+    "zebra"
+  ],
+  "author": "ARK Swiss",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "pkg": "^5.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

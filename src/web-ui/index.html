@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARK Print Server - Configuration</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 800px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .status-card {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      border-left: 4px solid #28a745;
+    }
+
+    .status-card.warning {
+      border-left-color: #ffc107;
+    }
+
+    .status-card.error {
+      border-left-color: #dc3545;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .status-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-label {
+      font-weight: 500;
+      color: #495057;
+    }
+
+    .status-value {
+      font-family: 'Courier New', monospace;
+      color: #212529;
+      background: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .form-section {
+      margin-bottom: 24px;
+    }
+
+    .form-section h3 {
+      color: #212529;
+      font-size: 18px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #495057;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      transition: border-color 0.3s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-input:disabled {
+      background: #f8f9fa;
+      cursor: not-allowed;
+    }
+
+    .form-help {
+      font-size: 12px;
+      color: #6c757d;
+      margin-top: 4px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #5a6268;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #218838;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .alert {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .alert.show {
+      display: block;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .alert-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .spinner {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #6c757d;
+      font-size: 12px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .copy-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 8px;
+      transition: background 0.3s;
+    }
+
+    .copy-btn:hover {
+      background: #5568d3;
+    }
+
+    .copy-btn.copied {
+      background: #28a745;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🖨️ ARK Print Server</h1>
+      <p>Configuration & Management Interface</p>
+    </div>
+
+    <div class="content">
+      <!-- Alert messages -->
+      <div id="alert" class="alert"></div>
+
+      <!-- Server Status -->
+      <div class="status-card" id="statusCard">
+        <h3 style="margin-bottom: 12px;">🟢 Server Status</h3>
+        <div class="status-item">
+          <span class="status-label">Status</span>
+          <span class="status-value" id="serverStatus">Loading...</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Version</span>
+          <span class="status-value" id="serverVersion">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Uptime</span>
+          <span class="status-value" id="serverUptime">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Printer IP</span>
+          <span class="status-value" id="printerIp">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Printer Port</span>
+          <span class="status-value" id="printerPort">-</span>
+        </div>
+      </div>
+
+      <!-- Auth Token Section -->
+      <div class="form-section">
+        <h3>🔐 Authentication Token</h3>
+        <div class="form-group">
+          <label class="form-label">Your secure token (copy this to ARK Stock)</label>
+          <div style="display: flex; align-items: center;">
+            <input type="text" class="form-input" id="authToken" readonly value="Loading...">
+            <button class="copy-btn" id="copyTokenBtn" onclick="copyToken()">Copy</button>
+          </div>
+          <p class="form-help">⚠️ Keep this token secret! It's required to authenticate with ARK Stock.</p>
+        </div>
+      </div>
+
+      <!-- Printer Configuration -->
+      <div class="form-section">
+        <h3>⚙️ Printer Configuration</h3>
+        <form id="configForm">
+          <div class="form-group">
+            <label class="form-label" for="printerIpInput">Printer IP Address</label>
+            <input
+              type="text"
+              class="form-input"
+              id="printerIpInput"
+              placeholder="10.1.55.150"
+              pattern="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+              required
+            >
+            <p class="form-help">The local IP address of your ZPL printer</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="printerPortInput">Printer Port</label>
+            <input
+              type="number"
+              class="form-input"
+              id="printerPortInput"
+              placeholder="9100"
+              min="1"
+              max="65535"
+              required
+            >
+            <p class="form-help">Default ZPL port is 9100</p>
+          </div>
+
+          <div class="btn-group">
+            <button type="submit" class="btn btn-primary" id="saveBtn">
+              <span>💾 Save Configuration</span>
+            </button>
+            <button type="button" class="btn btn-success" id="testBtn" onclick="testPrinter()">
+              <span>🧪 Test Print</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>ARK Print Server v1.0.0 | © 2025 ARK Swiss</p>
+      <p>For support, visit <strong>ark.swiss</strong></p>
+    </div>
+  </div>
+
+  <script>
+    let authToken = '';
+
+    // Load server status
+    async function loadStatus() {
+      try {
+        const response = await fetch('/health');
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('serverStatus').textContent = data.status;
+          document.getElementById('serverVersion').textContent = data.version;
+          document.getElementById('serverUptime').textContent = formatUptime(data.uptime);
+          document.getElementById('printerIp').textContent = data.printer.ip;
+          document.getElementById('printerPort').textContent = data.printer.port;
+
+          // Update form inputs
+          document.getElementById('printerIpInput').value = data.printer.ip;
+          document.getElementById('printerPortInput').value = data.printer.port;
+        }
+      } catch (error) {
+        showAlert('Failed to load server status', 'error');
+        document.getElementById('statusCard').classList.add('error');
+      }
+    }
+
+    // Load auth token from .env file (simulated - in reality read from server)
+    async function loadAuthToken() {
+      // In a real scenario, we'd read this from .env via API
+      // For now, we'll generate a token and store it in localStorage
+      let token = localStorage.getItem('ark_print_server_token');
+
+      if (!token) {
+        // Generate new token
+        token = generateToken();
+        localStorage.setItem('ark_print_server_token', token);
+      }
+
+      authToken = token;
+      document.getElementById('authToken').value = token;
+    }
+
+    // Generate secure token
+    function generateToken() {
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Copy token to clipboard
+    async function copyToken() {
+      const tokenInput = document.getElementById('authToken');
+      const copyBtn = document.getElementById('copyTokenBtn');
+
+      try {
+        await navigator.clipboard.writeText(tokenInput.value);
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied');
+        }, 2000);
+
+        showAlert('Token copied to clipboard!', 'success');
+      } catch (error) {
+        showAlert('Failed to copy token', 'error');
+      }
+    }
+
+    // Test printer connection
+    async function testPrinter() {
+      const testBtn = document.getElementById('testBtn');
+      testBtn.disabled = true;
+      testBtn.innerHTML = '<div class="spinner"></div> <span>Testing...</span>';
+
+      try {
+        const response = await fetch('/api/test', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('Test print sent successfully! Check your printer.', 'success');
+        } else {
+          showAlert(`Test failed: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showAlert(`Test failed: ${error.message}`, 'error');
+      } finally {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '<span>🧪 Test Print</span>';
+      }
+    }
+
+    // Save configuration
+    document.getElementById('configForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<div class="spinner"></div> <span>Saving...</span>';
+
+      const printerIp = document.getElementById('printerIpInput').value;
+      const printerPort = parseInt(document.getElementById('printerPortInput').value, 10);
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            printerIp,
+            printerPort
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('Configuration saved successfully!', 'success');
+          loadStatus(); // Reload status
+        } else {
+          showAlert(`Save failed: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showAlert(`Save failed: ${error.message}`, 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span>💾 Save Configuration</span>';
+      }
+    });
+
+    // Show alert message
+    function showAlert(message, type) {
+      const alert = document.getElementById('alert');
+      alert.className = `alert alert-${type} show`;
+      alert.textContent = message;
+
+      setTimeout(() => {
+        alert.classList.remove('show');
+      }, 5000);
+    }
+
+    // Format uptime
+    function formatUptime(seconds) {
+      const days = Math.floor(seconds / 86400);
+      const hours = Math.floor((seconds % 86400) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+
+      const parts = [];
+      if (days > 0) parts.push(`${days}d`);
+      if (hours > 0) parts.push(`${hours}h`);
+      if (minutes > 0) parts.push(`${minutes}m`);
+      if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+      return parts.join(' ');
+    }
+
+    // Initialize
+    loadStatus();
+    loadAuthToken();
+
+    // Refresh status every 30 seconds
+    setInterval(loadStatus, 30000);
+  </script>
+</body>
+</html>
