@@ -369,6 +369,20 @@
           </div>
         </form>
       </div>
+
+      <!-- Network Scanner -->
+      <div class="form-section">
+        <h3>🔍 Network Scanner</h3>
+        <p class="form-help" style="margin-bottom: 16px;">
+          Scan your local network to automatically find ZPL printers. This may take 30-60 seconds.
+        </p>
+        
+        <button type="button" class="btn btn-secondary" id="scanBtn" onclick="scanNetwork()">
+          <span>🔍 Scan Network for Printers</span>
+        </button>
+        
+        <div id="scanResults" style="margin-top: 20px;"></div>
+      </div>
     </div>
 
     <div class="footer">
@@ -403,20 +417,30 @@
       }
     }
 
-    // Load auth token from .env file (simulated - in reality read from server)
+    // Load auth token from server
     async function loadAuthToken() {
-      // In a real scenario, we'd read this from .env via API
-      // For now, we'll generate a token and store it in localStorage
-      let token = localStorage.getItem('ark_print_server_token');
-
-      if (!token) {
-        // Generate new token
-        token = generateToken();
-        localStorage.setItem('ark_print_server_token', token);
+      try {
+        const response = await fetch('/api/auth-token');
+        const data = await response.json();
+        
+        if (data.success && data.token) {
+          authToken = data.token;
+          document.getElementById('authToken').value = data.token;
+        } else {
+          // Fallback to localStorage for backwards compatibility
+          let token = localStorage.getItem('ark_print_server_token');
+          if (!token) {
+            token = generateToken();
+            localStorage.setItem('ark_print_server_token', token);
+          }
+          authToken = token;
+          document.getElementById('authToken').value = token;
+          
+          showAlert('⚠️ Using generated token. Configure AUTH_TOKEN in .env file!', 'info');
+        }
+      } catch (error) {
+        showAlert('Failed to load auth token', 'error');
       }
-
-      authToken = token;
-      document.getElementById('authToken').value = token;
     }
 
     // Generate secure token
@@ -542,6 +566,108 @@
       if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
 
       return parts.join(' ');
+    }
+
+    // Scan network for printers
+    async function scanNetwork() {
+      const scanBtn = document.getElementById('scanBtn');
+      const resultsDiv = document.getElementById('scanResults');
+      
+      scanBtn.disabled = true;
+      scanBtn.innerHTML = '<div class="spinner"></div> <span>Scanning network... (this may take up to 60 seconds)</span>';
+      
+      resultsDiv.innerHTML = `
+        <div class="status-card warning">
+          <p>⏳ Scanning your local network for ZPL printers...</p>
+          <p style="font-size: 12px; margin-top: 8px;">Please wait, testing 254 IP addresses.</p>
+        </div>
+      `;
+      
+      try {
+        const response = await fetch('/api/scan-printers', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          if (data.printers && data.printers.length > 0) {
+            let html = '<div class="status-card">';
+            html += `<h4 style="margin-bottom: 16px;">✅ Found ${data.printers.length} printer(s) on network ${data.localNetwork}</h4>`;
+            html += '<div style="display: flex; flex-direction: column; gap: 12px;">';
+            
+            data.printers.forEach(printer => {
+              html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                  <div>
+                    <div style="font-family: 'Courier New', monospace; font-weight: bold; font-size: 16px;">${printer.ip}:${printer.port}</div>
+                    <div style="font-size: 12px; color: #6c757d; margin-top: 4px;">Status: ${printer.status}</div>
+                  </div>
+                  <button class="btn btn-primary" onclick="usePrinter('${printer.ip}', ${printer.port})" style="padding: 8px 16px;">
+                    📌 Use This Printer
+                  </button>
+                </div>
+              `;
+            });
+            
+            html += '</div></div>';
+            resultsDiv.innerHTML = html;
+            showAlert(`Found ${data.printers.length} printer(s)!`, 'success');
+          } else {
+            resultsDiv.innerHTML = `
+              <div class="status-card warning">
+                <h4>⚠️ No printers found</h4>
+                <p style="margin-top: 8px;">Scanned ${data.scannedIPs} IPs on network ${data.localNetwork}</p>
+                <p style="margin-top: 8px; font-size: 12px;">Make sure your ZPL printer is:</p>
+                <ul style="margin-left: 20px; margin-top: 8px; font-size: 12px;">
+                  <li>Powered on and connected to the network</li>
+                  <li>On the same network as this server</li>
+                  <li>Listening on port 9100</li>
+                </ul>
+              </div>
+            `;
+            showAlert('No printers found on the network', 'info');
+          }
+        } else {
+          resultsDiv.innerHTML = `
+            <div class="status-card error">
+              <h4>❌ Scan failed</h4>
+              <p style="margin-top: 8px;">${data.error}</p>
+            </div>
+          `;
+          showAlert(`Scan failed: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        resultsDiv.innerHTML = `
+          <div class="status-card error">
+            <h4>❌ Scan failed</h4>
+            <p style="margin-top: 8px;">${error.message}</p>
+          </div>
+        `;
+        showAlert(`Scan failed: ${error.message}`, 'error');
+      } finally {
+        scanBtn.disabled = false;
+        scanBtn.innerHTML = '<span>🔍 Scan Network for Printers</span>';
+      }
+    }
+
+    // Use selected printer
+    function usePrinter(ip, port) {
+      // Update form inputs
+      document.getElementById('printerIpInput').value = ip;
+      document.getElementById('printerPortInput').value = port;
+      
+      // Update status display
+      document.getElementById('printerIp').textContent = ip;
+      document.getElementById('printerPort').textContent = port;
+      
+      showAlert(`Printer selected: ${ip}:${port}. Click "Save Configuration" to apply.`, 'success');
+      
+      // Scroll to form
+      document.getElementById('configForm').scrollIntoView({ behavior: 'smooth' });
     }
 
     // Initialize

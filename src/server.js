@@ -67,6 +67,30 @@ app.get('/health', (req, res) => {
 });
 
 /**
+ * Get auth token - Only for local web UI
+ * Public endpoint but only serves real token in non-production
+ */
+app.get('/api/auth-token', (req, res) => {
+  // Only expose token to localhost
+  const isLocalhost = req.hostname === 'localhost' || 
+                      req.hostname === '127.0.0.1' || 
+                      req.ip === '::1' || 
+                      req.ip === '127.0.0.1';
+  
+  if (!isLocalhost) {
+    return res.status(403).json({
+      success: false,
+      error: 'This endpoint is only available on localhost'
+    });
+  }
+
+  res.json({
+    success: true,
+    token: config.authToken
+  });
+});
+
+/**
  * Get server configuration
  * Requires authentication
  */
@@ -223,6 +247,101 @@ app.get('/api/queue', authenticate, (req, res) => {
     success: true,
     queue: printer.getQueueStatus()
   });
+});
+
+/**
+ * Scan local network for ZPL printers
+ * Requires authentication
+ */
+app.get('/api/scan-printers', authenticate, async (req, res) => {
+  const net = require('net');
+  const os = require('os');
+
+  try {
+    logger.info('Starting network scan for ZPL printers');
+    
+    // Get local IP address
+    const interfaces = os.networkInterfaces();
+    let localIP = '';
+    
+    for (const interfaceName in interfaces) {
+      const addresses = interfaces[interfaceName];
+      for (const addr of addresses) {
+        if (addr.family === 'IPv4' && !addr.internal) {
+          localIP = addr.address;
+          break;
+        }
+      }
+      if (localIP) break;
+    }
+    
+    if (!localIP) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Unable to determine local IP address' 
+      });
+    }
+    
+    // Calculate network (e.g., 192.168.1.0/24)
+    const ipParts = localIP.split('.');
+    const network = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}`;
+    
+    logger.info(`Scanning network ${network}.0/24`);
+    
+    const printers = [];
+    const promises = [];
+    
+    // Scan all 254 possible IP addresses
+    for (let i = 1; i <= 254; i++) {
+      const testIP = `${network}.${i}`;
+      
+      const promise = new Promise((resolve) => {
+        const client = new net.Socket();
+        client.setTimeout(800); // 800ms timeout per IP
+        
+        client.connect(9100, testIP, () => {
+          logger.debug(`Found printer at ${testIP}:9100`);
+          client.destroy();
+          printers.push({
+            ip: testIP,
+            port: 9100,
+            status: 'available'
+          });
+          resolve();
+        });
+        
+        client.on('error', () => {
+          client.destroy();
+          resolve();
+        });
+        
+        client.on('timeout', () => {
+          client.destroy();
+          resolve();
+        });
+      });
+      
+      promises.push(promise);
+    }
+    
+    await Promise.all(promises);
+    
+    logger.info(`Network scan completed. Found ${printers.length} printer(s)`);
+    
+    res.json({ 
+      success: true, 
+      printers,
+      localNetwork: `${network}.0/24`,
+      scannedIPs: 254
+    });
+    
+  } catch (error) {
+    logger.error('Network scan error', { error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
 });
 
 // ============================================
