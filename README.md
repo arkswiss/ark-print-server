@@ -79,7 +79,7 @@ docker run -d \
   -e PRINTER_PORT=9100 \
   -e AUTH_TOKEN=$(openssl rand -hex 32) \
   -v $(pwd)/logs:/app/logs \
-  schmidmatthieu/ark-print-server:latest
+  arkswiss/ark-print-server:latest
 ```
 
 ### Option 3 : Node.js natif

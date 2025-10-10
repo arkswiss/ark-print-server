@@ -3,7 +3,7 @@ version: '3.8'
 services:
   ark-print-server:
     build: .
-    image: schmidmatthieu/ark-print-server:latest
+    image: arkswiss/ark-print-server:latest
     container_name: ark-print-server
     restart: unless-stopped
     ports:
