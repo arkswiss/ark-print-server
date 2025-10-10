@@ -79,13 +79,20 @@ echo "║                 Configuration                          ║"
 echo "╚════════════════════════════════════════════════════════╝"
 echo ""
 
-# Demander l'IP de l'imprimante
-read -p "Adresse IP de votre imprimante ZPL (par défaut: 10.1.55.150): " PRINTER_IP
-PRINTER_IP=${PRINTER_IP:-10.1.55.150}
+# Détecter si on est en mode interactif
+if [ -t 0 ]; then
+    # Mode interactif - demander les paramètres
+    read -p "Adresse IP de votre imprimante ZPL (par défaut: 10.1.55.150): " PRINTER_IP
+    PRINTER_IP=${PRINTER_IP:-10.1.55.150}
 
-# Demander le port
-read -p "Port de l'imprimante (par défaut: 9100): " PRINTER_PORT
-PRINTER_PORT=${PRINTER_PORT:-9100}
+    read -p "Port de l'imprimante (par défaut: 9100): " PRINTER_PORT
+    PRINTER_PORT=${PRINTER_PORT:-9100}
+else
+    # Mode non-interactif - utiliser valeurs par défaut
+    PRINTER_IP=${PRINTER_IP:-10.1.55.150}
+    PRINTER_PORT=${PRINTER_PORT:-9100}
+    info "Configuration par défaut: IP=${PRINTER_IP}, Port=${PRINTER_PORT}"
+fi
 
 # Générer un token sécurisé
 info "Génération d'un token de sécurité..."
@@ -128,25 +135,44 @@ echo ""
 warning "⚠️  IMPORTANT: Sauvegardez ce token dans un endroit sûr!"
 echo ""
 
-# Demander si on doit démarrer maintenant
-read -p "Voulez-vous démarrer le Print Server maintenant? (o/N): " START_NOW
+# Démarrer automatiquement si non-interactif (curl | bash)
+# Sinon demander confirmation
+START_NOW="o"
+if [ -t 0 ]; then
+    # Terminal interactif, demander confirmation
+    read -p "Voulez-vous démarrer le Print Server maintenant? (O/n): " START_NOW
+    START_NOW=${START_NOW:-o}
+else
+    # Non-interactif (curl | bash), démarrer automatiquement
+    info "Mode non-interactif détecté, démarrage automatique..."
+fi
 
-if [[ "$START_NOW" =~ ^[Oo]$ ]]; then
+if [[ ! "$START_NOW" =~ ^[Nn]$ ]]; then
     info "Démarrage du Print Server..."
     docker compose pull
     docker compose up -d
 
     # Attendre que le service soit prêt
-    sleep 3
+    sleep 5
 
     # Vérifier le statut
-    if docker compose ps | grep -q "running"; then
+    if docker compose ps | grep -qE "(running|Up)"; then
         success "Print Server démarré avec succès!"
         echo ""
         echo "📍 URL locale: http://localhost:8099"
         echo "🔌 API: http://localhost:8099/api/print"
         echo ""
         info "Pour voir les logs: cd ${INSTALL_DIR} && docker compose logs -f"
+
+        # Test de connectivité
+        echo ""
+        info "Test de connectivité..."
+        sleep 2
+        if curl -s http://localhost:8099/health > /dev/null 2>&1; then
+            success "✅ Print Server répond correctement!"
+        else
+            warning "⚠️  Le serveur démarre, patientez quelques secondes..."
+        fi
     else
         error "Échec du démarrage. Vérifiez les logs avec: cd ${INSTALL_DIR} && docker compose logs"
     fi
