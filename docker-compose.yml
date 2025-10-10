@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  ark-print-server:
+    build: .
+    image: schmidmatthieu/ark-print-server:latest
+    container_name: ark-print-server
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      # Configuration imprimante
+      PRINTER_IP: ${PRINTER_IP:-10.1.55.150}
+      PRINTER_PORT: ${PRINTER_PORT:-9100}
+
+      # Token de sécurité (générer avec: openssl rand -hex 32)
+      AUTH_TOKEN: ${AUTH_TOKEN}
+
+      # Configuration serveur
+      PORT: ${PORT:-8099}
+      HOST: ${HOST:-0.0.0.0}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+      # Retry configuration
+      MAX_RETRIES: ${MAX_RETRIES:-3}
+      RETRY_DELAY_MS: ${RETRY_DELAY_MS:-2000}
+
+    volumes:
+      # Persist logs
+      - ./logs:/app/logs
+
+    networks:
+      - ark-network
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8099/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  ark-network:
+    driver: bridge
