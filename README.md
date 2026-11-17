@@ -241,7 +241,7 @@ docker stats ark-print-server
 
 ### Logs
 
-Les logs sont stockés dans `./logs/` :
+Les logs sont stockés dans `./logs/`. Pour un exécutable autonome, placez le fichier `.env` à côté du binaire ; les logs sont alors écrits dans le sous-dossier `logs/` à cet emplacement. Si le dossier du binaire est en lecture seule, définissez `ARK_PRINT_DATA_DIR` vers un dossier accessible en écriture avant le démarrage. L’exécutable y lira le fichier `.env` et y créera `logs/`.
 - `combined.log` - Tous les logs
 - `error.log` - Erreurs uniquement
 

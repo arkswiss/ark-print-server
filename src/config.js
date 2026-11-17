@@ -1,8 +1,12 @@
 const path = require('path');
 const crypto = require('crypto');
 
-// Load .env file if it exists
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+// Packaged code lives in a read-only snapshot. Keep writable files beside the executable.
+const runtimeDir = process.pkg
+  ? path.resolve(process.env.ARK_PRINT_DATA_DIR || path.dirname(process.execPath))
+  : path.resolve(__dirname, '..');
+const envPath = path.join(runtimeDir, '.env');
+require('dotenv').config({ path: envPath });
 
 // Generate default token if none exists
 const generateDefaultToken = () => {
@@ -10,6 +14,9 @@ const generateDefaultToken = () => {
 };
 
 const config = {
+  envPath,
+  logsDir: path.join(runtimeDir, 'logs'),
+
   // Server configuration
   port: parseInt(process.env.PORT || '8099', 10),
   host: process.env.HOST || '0.0.0.0',

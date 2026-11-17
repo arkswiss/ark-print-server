@@ -123,18 +123,19 @@ app.post('/api/config', authenticate, (req, res) => {
   }
 
   // Save to .env file
-  const envPath = path.join(__dirname, '../.env');
+  const { envPath } = config;
   let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
 
-  if (printerIp) {
-    envContent = envContent.replace(/PRINTER_IP=.*/g, `PRINTER_IP=${printerIp}`) ||
-                 envContent + `\nPRINTER_IP=${printerIp}`;
+  function saveSetting(key, value) {
+    const pattern = new RegExp(`^${key}=.*$`, 'gm');
+    const line = `${key}=${value}`;
+    envContent = pattern.test(envContent)
+      ? envContent.replace(pattern, () => line)
+      : envContent + (envContent && !envContent.endsWith('\n') ? '\n' : '') + line + '\n';
   }
 
-  if (printerPort) {
-    envContent = envContent.replace(/PRINTER_PORT=.*/g, `PRINTER_PORT=${printerPort}`) ||
-                 envContent + `\nPRINTER_PORT=${printerPort}`;
-  }
+  if (printerIp) saveSetting('PRINTER_IP', printerIp);
+  if (printerPort) saveSetting('PRINTER_PORT', printerPort);
 
   fs.writeFileSync(envPath, envContent);
 

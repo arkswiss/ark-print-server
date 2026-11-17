@@ -1,6 +1,6 @@
 {
   "name": "ark-print-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local print server for ARK Stock ZPL printers - Standalone solution for clients",
   "main": "src/server.js",
   "scripts": {
